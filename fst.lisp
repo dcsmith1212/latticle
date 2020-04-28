@@ -165,9 +165,13 @@
 
 (defgeneric invert (fst))
 
-(defgeneric project-arcs-off-state (state-id type fst))
+(defgeneric project-arcs-off-state (state-id fst type))
 
 (defgeneric project (fst type))
+
+(defgeneric add-to-weights-off-state (state-id fst weight))
+
+(defgeneric plus-mapper (fst weight))
 
 
 
@@ -223,4 +227,18 @@
 
 (defmethod project ((fst cl-fst) type)
   (breadth-first-traversal fst #'project-arcs-off-state type)
+  fst)
+
+
+
+(defun add-to-weight (arc delta)
+  (setf (weight arc) (+ delta (weight arc))))
+
+(defmethod add-to-weights-off-state (state-id (fst cl-fst) delta)
+  (let* ((arcs (get-arcs state-id fst))
+         (delta-list (make-list (length arcs) :initial-element delta)))
+    (mapcar #'add-to-weight arcs delta-list)))
+
+(defmethod plus-mapper ((fst cl-fst) delta)
+  (breadth-first-traversal fst #'add-to-weights-off-state delta)
   fst)
