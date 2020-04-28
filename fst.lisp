@@ -159,7 +159,7 @@
 
 (defgeneric invert-labels-off-state (state-id fst))
 
-(defgeneric breadth-first-traversal (fst modifier-fn))
+(defgeneric breadth-first-traversal (fst modifier-fn &rest modifier-fun-args))
 
 (defgeneric invert-labels-off-state (state-id fst))
 
@@ -179,7 +179,7 @@
    (mapcar #'(lambda (arc) (nextstate arc))
            (get-arcs state-id fst))))
 
-(defmethod breadth-first-traversal ((fst cl-fst) modifier-fn)
+(defmethod breadth-first-traversal ((fst cl-fst) modifier-fn &rest modifier-fn-args)
   (let ((state-queue `(,(start-state fst)))
          (states-visited `(,(start-state fst))))
      (labels ((get-unvisited-nextstates (state-id)
@@ -189,7 +189,7 @@
                 (let ((states-to-add (get-unvisited-nextstates state-id)))
                   (appendf state-queue states-to-add)
                   (appendf states-visited states-to-add)
-                  (funcall modifier-fn state-id fst)
+                  (apply modifier-fn (cons state-id (cons fst modifier-fn-args)))
                   (when state-queue (visit-state (pop state-queue))))))
        (visit-state (pop state-queue)))
      states-visited))
@@ -207,6 +207,20 @@
 
 (defmethod invert ((fst cl-fst))
   (breadth-first-traversal fst #'invert-labels-off-state)
-  mfst)
+  fst)
 
 
+
+(defun project-arc (arc type)
+  (case type
+    (ilabel (setf (olabel arc) (ilabel arc)))
+    (olabel (setf (ilabel arc) (olabel arc)))))
+
+(defmethod project-arcs-off-state (state-id (fst cl-fst) type)
+  (let* ((arcs (get-arcs state-id fst))
+         (type-list (make-list (length arcs) :initial-element type)))
+    (mapcar #'project-arc arcs type-list)))
+
+(defmethod project ((fst cl-fst) type)
+  (breadth-first-traversal fst #'project-arcs-off-state type)
+  fst)

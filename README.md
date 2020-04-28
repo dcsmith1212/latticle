@@ -1,1 +1,1 @@
-"Weighted finite state transducers in Common Lisp" 
+Weighted finite state transducers in Common Lisp 
